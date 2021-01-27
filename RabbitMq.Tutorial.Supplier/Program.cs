@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using RabbitMq.Tutorial.Supplier.BackgroundServices;
 
 namespace rabbitmq_tutorial
 {
@@ -18,6 +20,10 @@ namespace rabbitmq_tutorial
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); });
+                .ConfigureWebHostDefaults(webBuilder => { webBuilder.UseStartup<Startup>(); })
+                .ConfigureServices(services =>
+                {
+                    services.AddHostedService<OrderConsumer>();
+                });
     }
 }

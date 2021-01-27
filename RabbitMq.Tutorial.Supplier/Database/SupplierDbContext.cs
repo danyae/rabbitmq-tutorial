@@ -10,7 +10,7 @@ namespace RabbitMq.Tutorial.Supplier.Database
         public DbSet<Store> Stores { get; set; }
         public DbSet<OrderLine> OrderLine { get; set; }
         public DbSet<Order> Order { get; set; }
-        public DbSet<WarehouseStockBalance> ProductStockBalance { get; set; }
+        public DbSet<WarehouseStockBalance> WarehouseStockBalance { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder options)
             => options.UseSqlite("Data Source=supplier.db");

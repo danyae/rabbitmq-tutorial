@@ -6,7 +6,7 @@ using RabbitMq.Tutorial.Supplier.Database;
 namespace RabbitMq.Tutorial.Supplier.Controllers
 {
     [ApiController]
-    [Microsoft.AspNetCore.Components.Route("[controller]")]
+    [Route("api/[controller]")]
     public class ProductsController
     {
         private readonly SupplierDbContext _dbContext;
@@ -16,7 +16,7 @@ namespace RabbitMq.Tutorial.Supplier.Controllers
             _dbContext = dbContext;
         }
         
-        [HttpGet]
+        [HttpGet("")]
         public IEnumerable<Product> Get()
         {
             return _dbContext.Products.ToList();
