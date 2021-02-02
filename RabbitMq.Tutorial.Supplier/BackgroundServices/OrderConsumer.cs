@@ -1,10 +1,8 @@
 using System;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RabbitMQ.Client;
@@ -16,7 +14,10 @@ namespace RabbitMq.Tutorial.Supplier.BackgroundServices
 {
     public class OrderConsumer : BackgroundService
     {
+        private const string QueueName = "rabbitmq.tutorial.orders";
         private readonly IServiceProvider _serviceProvider;
+        private IConnection _connection;
+        private IModel _channel;
 
         public OrderConsumer(IServiceProvider services)
         {
@@ -25,19 +26,20 @@ namespace RabbitMq.Tutorial.Supplier.BackgroundServices
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var factory = new ConnectionFactory() {HostName = "localhost"};
-            using var connection = factory.CreateConnection();
-            using var channel = connection.CreateModel();
-            channel.QueueDeclare(queue: "rabbitmq.tutorial.orders",
+            var factory = new ConnectionFactory() {HostName = "localhost", Port = 5672};
+            _connection = factory.CreateConnection();
+            _channel = _connection.CreateModel();
+            _channel.QueueDeclare(queue: QueueName,
                 durable: false,
                 exclusive: false,
                 autoDelete: false,
                 arguments: null);
+            _channel.BasicQos(0, 1, false);
 
-            var consumer = new EventingBasicConsumer(channel);
+            var consumer = new EventingBasicConsumer(_channel);
             consumer.Received += (model, eventArgs) =>
             {
-                var body = eventArgs.Body.Span;
+                var body = eventArgs.Body.ToArray();
                 var message = JsonSerializer.Deserialize<OrderMessage>(body);
 
                 using (var scope = _serviceProvider.CreateScope())
@@ -49,12 +51,24 @@ namespace RabbitMq.Tutorial.Supplier.BackgroundServices
                             {ProductId = x.ProductId, Quantity = x.Quantity}).ToList(),
                         StoreId = message.StoreId
                     });
-
+                
                     dbContext.SaveChanges();
                 }
+                _channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
             };
 
+            _channel.BasicConsume(queue: QueueName,
+                autoAck: false,
+                consumer: consumer);
+
             return Task.CompletedTask;
+        }
+
+        public override void Dispose()
+        {
+            _channel.Close();
+            _connection.Close();
+            base.Dispose();
         }
     }
 }
