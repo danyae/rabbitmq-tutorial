@@ -1,0 +1,16 @@
+# docker-compose up --build --force-recreate
+version: '3.5'
+services:
+  # http://localhost:15672/#/
+  rabbit-mq:
+    image: "heidiks/rabbitmq-delayed-message-exchange"
+    hostname: "rabbitmq"
+    ports:
+      - 15672:15672
+      - 5672:5672
+
+  # http://localhost:8000/swagger/index.html
+  supplier:
+    build: RabbitMq.Tutorial.Supplier/
+    ports:
+      - "8000:80"

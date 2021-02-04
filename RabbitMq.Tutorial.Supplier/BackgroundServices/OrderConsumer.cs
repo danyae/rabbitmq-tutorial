@@ -5,8 +5,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using RabbitMq.Tutorial.Supplier.Database;
 using RabbitMq.Tutorial.Supplier.Messages;
 
@@ -16,26 +18,20 @@ namespace RabbitMq.Tutorial.Supplier.BackgroundServices
     {
         private const string QueueName = "rabbitmq.tutorial.orders";
         private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger _logger;
         private IConnection _connection;
         private IModel _channel;
 
-        public OrderConsumer(IServiceProvider services)
+        public OrderConsumer(IServiceProvider services, ILogger<OrderConsumer> logger)
         {
             _serviceProvider = services;
+            _logger = logger;
         }
 
         protected override Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var factory = new ConnectionFactory() {HostName = "localhost", Port = 5672};
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
-            _channel.QueueDeclare(queue: QueueName,
-                durable: false,
-                exclusive: false,
-                autoDelete: false,
-                arguments: null);
-            _channel.BasicQos(0, 1, false);
-
+            OpenConnection();
+            
             var consumer = new EventingBasicConsumer(_channel);
             consumer.Received += (model, eventArgs) =>
             {
@@ -64,10 +60,45 @@ namespace RabbitMq.Tutorial.Supplier.BackgroundServices
             return Task.CompletedTask;
         }
 
+        private void OpenConnection()
+        {
+            var factory = new ConnectionFactory
+            {
+                HostName = "rabbitmq",
+                Port = 5672,
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+            };
+
+            // "if initial client connection to a RabbitMQ node fails, automatic connection recovery won't kick in."
+            // but thats what we want in our case of a simple docker-compose file
+            do
+            {
+                try
+                {
+                    _connection = factory.CreateConnection();
+                    _channel = _connection.CreateModel();
+                
+                    _channel.QueueDeclare(queue: QueueName,
+                        durable: false,
+                        exclusive: false,
+                        autoDelete: false,
+                        arguments: null);
+                    _channel.BasicQos(0, 1, false);
+                    break;
+                }
+                catch (BrokerUnreachableException e)
+                {
+                    _logger.LogError(e, $"Exception in {nameof(OrderConsumer)}");
+                    Thread.Sleep(5000);
+                }
+            } while (true);
+        }
+
         public override void Dispose()
         {
-            _channel.Close();
-            _connection.Close();
+            _channel?.Close();
+            _connection?.Close();
             base.Dispose();
         }
     }

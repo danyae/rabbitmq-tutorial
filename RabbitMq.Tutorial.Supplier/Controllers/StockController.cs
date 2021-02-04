@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using RabbitMq.Tutorial.Supplier.Controllers.Models;
 using RabbitMq.Tutorial.Supplier.Database;
 
 namespace RabbitMq.Tutorial.Supplier.Controllers
@@ -20,10 +21,11 @@ namespace RabbitMq.Tutorial.Supplier.Controllers
         }
 
         [HttpGet("")]
-        public IEnumerable<WarehouseStockBalance> Get()
+        public IEnumerable<StockApiModel> Get()
         {
             return _dbContext.WarehouseStockBalance
                 .Include(x => x.Product)
+                .Select(x => new StockApiModel(x.ProductId, x.Product.Name, x.Quantity))
                 .ToList();
         }
 

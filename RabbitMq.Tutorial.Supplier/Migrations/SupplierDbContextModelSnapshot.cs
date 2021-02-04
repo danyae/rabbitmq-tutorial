@@ -153,6 +153,38 @@ namespace RabbitMq.Tutorial.Supplier.Migrations
                     b.HasIndex("ProductId");
 
                     b.ToTable("WarehouseStockBalance");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("c910765c-0ca5-475c-bb78-e190765a696f"),
+                            ProductId = new Guid("e90581b2-3a0a-4dea-9f4f-2da6b2a60938"),
+                            Quantity = 1000
+                        },
+                        new
+                        {
+                            Id = new Guid("d3f6cdc3-bdbf-4fb9-a1b8-88d09b96a4bf"),
+                            ProductId = new Guid("a7adedc9-7e43-4ce9-a932-fa10a42eca5c"),
+                            Quantity = 1000
+                        },
+                        new
+                        {
+                            Id = new Guid("8d393aed-098d-4754-9184-ee91f0cd9336"),
+                            ProductId = new Guid("49a226e0-3991-4b09-bf11-af3dfae6d0d2"),
+                            Quantity = 1000
+                        },
+                        new
+                        {
+                            Id = new Guid("49b85379-2342-4f54-b79e-590481cf4143"),
+                            ProductId = new Guid("1cd5a63f-392e-4429-91b2-7ca57daa11da"),
+                            Quantity = 1000
+                        },
+                        new
+                        {
+                            Id = new Guid("3481dd5e-9b1f-4cdc-99d8-48ad89e8654d"),
+                            ProductId = new Guid("d5cfc5f7-2034-4430-8a42-34bd1660491f"),
+                            Quantity = 1000
+                        });
                 });
 
             modelBuilder.Entity("RabbitMq.Tutorial.Supplier.Database.Order", b =>
