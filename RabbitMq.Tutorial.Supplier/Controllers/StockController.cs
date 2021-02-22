@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RabbitMq.Tutorial.Supplier.Controllers.Models;
 using RabbitMq.Tutorial.Supplier.Database;
+using RabbitMq.Tutorial.Supplier.Messages;
+using RabbitMq.Tutorial.Supplier.Producers;
 
 namespace RabbitMq.Tutorial.Supplier.Controllers
 {
@@ -30,7 +32,10 @@ namespace RabbitMq.Tutorial.Supplier.Controllers
         }
 
         [HttpPost("")]
-        public async Task<IActionResult> Post(Guid productId, int quantity)
+        public async Task<IActionResult> Post(
+            Guid productId,
+            int quantity,
+            [FromServices] StockUpdateProducer stockUpdateProducer)
         {
             var product = await _dbContext.Products.FindAsync(productId);
             if (product == null)
@@ -53,6 +58,14 @@ namespace RabbitMq.Tutorial.Supplier.Controllers
             {
                 await _dbContext.WarehouseStockBalance.AddAsync(stockBalance);
             }
+
+            stockUpdateProducer.Publish(new StockUpdateMessage()
+            {
+                ProductId = productId, 
+                Price = product.Price, 
+                ProductName = product.Name,
+                Quantity = stockBalance.Quantity
+            });
 
             await _dbContext.SaveChangesAsync();
             return new OkResult();

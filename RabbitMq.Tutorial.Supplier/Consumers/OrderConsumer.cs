@@ -7,11 +7,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQ.Client.Exceptions;
 using RabbitMq.Tutorial.Supplier.Database;
 using RabbitMq.Tutorial.Supplier.Messages;
+using RabbitMq.Tutorial.Supplier.Options;
 using RabbitMq.Tutorial.Supplier.Producers;
 
 namespace RabbitMq.Tutorial.Supplier.Consumers
@@ -31,13 +33,18 @@ namespace RabbitMq.Tutorial.Supplier.Consumers
     {
         private const string QueueName = "rabbitmq.tutorial.orders";
         private readonly IServiceProvider _serviceProvider;
+        private readonly RabbitmqOptions _options;
         private readonly ILogger _logger;
         private IConnection _connection;
         private IModel _channel;
 
-        public OrderConsumer(IServiceProvider services, ILogger<OrderConsumer> logger)
+        public OrderConsumer(
+            IServiceProvider services,
+            IOptions<RabbitmqOptions> rabbitMqOptions,
+            ILogger<OrderConsumer> logger)
         {
             _serviceProvider = services;
+            _options = rabbitMqOptions.Value;
             _logger = logger;
         }
 
@@ -46,63 +53,7 @@ namespace RabbitMq.Tutorial.Supplier.Consumers
             OpenConnection();
 
             var consumer = new EventingBasicConsumer(_channel);
-            consumer.Received += (model, eventArgs) =>
-            {
-                try
-                {
-                    var body = eventArgs.Body.ToArray();
-                    var message = JsonSerializer.Deserialize<OrderMessage>(body);
-                
-                    _logger.LogInformation($"Got message from {message.StoreId}");
-
-                    using (var scope = _serviceProvider.CreateScope())
-                    {
-                        var dbContext = scope.ServiceProvider.GetRequiredService<SupplierDbContext>();
-                        var order = new Order()
-                        {
-                            OrderLines = message.OrderLines.Select(x => new OrderLine()
-                                {ProductId = x.ProductId, Quantity = x.Quantity}).ToList(),
-                            StoreId = message.StoreId
-                        };
-                        dbContext.Add(order);
-                        
-                        var orderProductIds = message.OrderLines.Select(x => x.ProductId).ToArray();
-                        var stock = dbContext.WarehouseStockBalance
-                            .Include(x => x.Product)
-                            .Where(x => orderProductIds.Contains(x.ProductId))
-                            .ToArray();
-                        foreach (var orderLine in message.OrderLines)
-                        {
-                            var stockItem = stock.FirstOrDefault(x => x.Id == orderLine.ProductId);
-                            if (stockItem != null)
-                            {
-                                stockItem.Quantity -= orderLine.Quantity;    
-                            }
-                        }
-
-                        dbContext.SaveChanges();
-
-                        var stockProducer = scope.ServiceProvider.GetRequiredService<StockUpdateProducer>();
-                        foreach (var record in stock)
-                        {
-                            stockProducer.Publish(new StockUpdateMessage()
-                            {
-                                ProductId = record.ProductId, 
-                                ProductName = record.Product.Name,
-                                Price = record.Product.Price, 
-                                Quantity = record.Quantity
-                            });
-                        }
-                    }
-
-                    _channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
-                }
-                catch (Exception e)
-                {
-                    _logger.LogError(e, $"Exception in ${nameof(OrderConsumer)}");
-                    throw;
-                }
-            };
+            consumer.Received += ConsumerOnReceived;
 
             _channel.BasicConsume(queue: QueueName,
                 autoAck: false,
@@ -115,8 +66,8 @@ namespace RabbitMq.Tutorial.Supplier.Consumers
         {
             var factory = new ConnectionFactory
             {
-                HostName = "rabbitmq",
-                Port = 5672,
+                HostName = _options.HostName,
+                Port = _options.Port,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
@@ -144,6 +95,64 @@ namespace RabbitMq.Tutorial.Supplier.Consumers
                     Thread.Sleep(5000);
                 }
             } while (true);
+        }
+        
+        private void ConsumerOnReceived(object sender, BasicDeliverEventArgs eventArgs)
+        {
+            try
+            {
+                var body = eventArgs.Body.ToArray();
+                var message = JsonSerializer.Deserialize<OrderMessage>(body);
+
+                _logger.LogInformation($"Got message from {message.StoreId}");
+
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<SupplierDbContext>();
+                    var order = new Order()
+                    {
+                        OrderLines = message.OrderLines.Select(x => new OrderLine()
+                            {ProductId = x.ProductId, Quantity = x.Quantity}).ToList(),
+                        StoreId = message.StoreId
+                    };
+                    dbContext.Add(order);
+
+                    var orderProductIds = message.OrderLines.Select(x => x.ProductId).ToArray();
+                    var stock = dbContext.WarehouseStockBalance
+                        .Include(x => x.Product)
+                        .Where(x => orderProductIds.Contains(x.ProductId))
+                        .ToArray();
+                    foreach (var orderLine in message.OrderLines)
+                    {
+                        var stockItem = stock.FirstOrDefault(x => x.Id == orderLine.ProductId);
+                        if (stockItem != null)
+                        {
+                            stockItem.Quantity -= orderLine.Quantity;
+                        }
+                    }
+
+                    dbContext.SaveChanges();
+
+                    var stockProducer = scope.ServiceProvider.GetRequiredService<StockUpdateProducer>();
+                    foreach (var record in stock)
+                    {
+                        stockProducer.Publish(new StockUpdateMessage()
+                        {
+                            ProductId = record.ProductId,
+                            ProductName = record.Product.Name,
+                            Price = record.Product.Price,
+                            Quantity = record.Quantity
+                        });
+                    }
+                }
+
+                _channel.BasicAck(eventArgs.DeliveryTag, multiple: false);
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, $"Exception in ${nameof(OrderConsumer)}");
+                throw;
+            }
         }
 
         public override void Dispose()

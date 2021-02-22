@@ -1,18 +1,22 @@
 using System;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using RabbitMq.Tutorial.Supplier.Messages;
+using RabbitMq.Tutorial.Supplier.Options;
 
 namespace RabbitMq.Tutorial.Supplier.Producers
 {
     public class StockUpdateProducer
     {
         private const string ExchangeName = "rabbitmq.tutorial.stock-update";
+        private readonly RabbitmqOptions _options;
         private readonly ILogger _logger;
 
-        public StockUpdateProducer(ILogger<StockUpdateProducer> logger)
+        public StockUpdateProducer(ILogger<StockUpdateProducer> logger, IOptions<RabbitmqOptions> rabbitMqOptions)
         {
+            _options = rabbitMqOptions.Value;
             _logger = logger;
         }
 
@@ -20,13 +24,13 @@ namespace RabbitMq.Tutorial.Supplier.Producers
         {
             if (message == null)
             {
-                return;
+                throw new InvalidOperationException($"Got empty message in {nameof(StockUpdateProducer)}");
             }
             
             var factory = new ConnectionFactory
             {
-                HostName = "rabbitmq",
-                Port = 5672,
+                HostName = _options.HostName,
+                Port = _options.Port,
                 AutomaticRecoveryEnabled = true,
                 NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };

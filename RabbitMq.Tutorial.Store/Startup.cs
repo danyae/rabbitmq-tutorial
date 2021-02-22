@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using RabbitMq.Tutorial.Store.Clients;
 using RabbitMq.Tutorial.Store.Options;
 
 namespace RabbitMq.Tutorial.Store
@@ -19,6 +20,10 @@ namespace RabbitMq.Tutorial.Store
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddControllersWithViews();
+            services.AddHttpClient();
+            services.AddScoped(typeof(SupplierClient));
+            services.Configure<RabbitmqOptions>(Configuration.GetSection(nameof(RabbitmqOptions)));
+            services.Configure<SupplierOptions>(Configuration.GetSection(nameof(SupplierOptions)));
             services.Configure<StoreOptions>(Configuration.GetSection(nameof(StoreOptions)));
         }
 

@@ -1,8 +1,27 @@
-﻿@{
+﻿@model RabbitMq.Tutorial.Store.Clients.Models.Product[]
+@{
     ViewData["Title"] = "Home Page";
     var storeName = ViewBag.StoreName;
 }
 
 <div class="text-center">
     <h1 class="display-4">Welcome to @storeName!</h1>
+
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Price</th>
+        </tr>
+        </thead>
+        @foreach (var product in Model)
+        {
+            <tr>
+                <td>@product.Id</td>
+                <td>@product.Name</td>
+                <td>@product.Price.ToString("F2")</td>
+            </tr>
+        }
+    </table>
 </div>
