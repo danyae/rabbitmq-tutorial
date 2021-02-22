@@ -12,5 +12,39 @@ services:
   # http://localhost:8000/swagger/index.html
   supplier:
     build: RabbitMq.Tutorial.Supplier/
+    hostname: "supplier"
     ports:
       - "8000:80"
+
+  # http://localhost:8001/index.html
+  store-hrusha:
+    build: RabbitMq.Tutorial.Store/
+    hostname: "store-hrusha"
+    environment:
+      - STOREOPTIONS__ID=82B06D3E-90FC-4409-820B-B5383B5173E4
+      - STOREOPTIONS__NAME='Hrusha's Goods'
+      - STOREOPTIONS__MARKUP=1.2
+    ports:
+      - "8001:80"
+
+  # http://localhost:8002/index.html
+  store-stepasha:
+    build: RabbitMq.Tutorial.Store/
+    hostname: "store-stepasha"
+    environment:
+      - STOREOPTIONS__ID=531317C9-5457-40C5-8EF3-6358A38587DF
+      - STOREOPTIONS__NAME='Stepasha's Store'
+      - STOREOPTIONS__MARKUP=1.2
+    ports:
+    - "8002:80"
+
+  # http://localhost:8003/index.html
+  store-karkusha:
+    build: RabbitMq.Tutorial.Store/
+    hostname: "store-karkusha"
+    environment:
+      - STOREOPTIONS__ID=321B19B5-BB14-419D-B429-DB8EA0C4CD50
+      - STOREOPTIONS__NAME='Karkushas's Marketplace'
+      - STOREOPTIONS__MARKUP=1.2
+    ports:
+      - "8003:80"

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.OpenApi.Models;
 using RabbitMq.Tutorial.Supplier.Database;
+using RabbitMq.Tutorial.Supplier.Producers;
 
 namespace RabbitMq.Tutorial.Supplier
 {
@@ -23,6 +24,7 @@ namespace RabbitMq.Tutorial.Supplier
             services.AddControllers();
             
             services.AddDbContext<SupplierDbContext>();
+            services.AddScoped(typeof(StockUpdateProducer));
             
             services.AddSwaggerGen(c =>
             {

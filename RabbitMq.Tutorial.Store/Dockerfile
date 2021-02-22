@@ -4,14 +4,14 @@ WORKDIR /app
 # Copy csproj and restore as distinct layers
 # COPY *.sln ./
 COPY *.csproj ./
-RUN dotnet restore RabbitMq.Tutorial.Supplier.csproj
+RUN dotnet restore RabbitMq.Tutorial.Store.csproj
 
 # Copy everything else and build
 COPY . ./
-RUN dotnet publish RabbitMq.Tutorial.Supplier.csproj -c Release -o ../out
+RUN dotnet publish RabbitMq.Tutorial.Store.csproj -c Release -o ../out
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:5.0-focal
 WORKDIR /app
 COPY --from=build-env /out .
-ENTRYPOINT ["dotnet", "RabbitMq.Tutorial.Supplier.dll"]
+ENTRYPOINT ["dotnet", "RabbitMq.Tutorial.Store.dll"]

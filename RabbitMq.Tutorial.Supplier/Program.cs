@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using RabbitMq.Tutorial.Supplier.BackgroundServices;
+using RabbitMq.Tutorial.Supplier.Consumers;
 
 namespace RabbitMq.Tutorial.Supplier
 {
