@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RabbitMq.Tutorial.Store.Clients;
 using RabbitMq.Tutorial.Store.Options;
+using RabbitMq.Tutorial.Store.Producers;
 
 namespace RabbitMq.Tutorial.Store
 {
@@ -25,6 +26,7 @@ namespace RabbitMq.Tutorial.Store
             services.Configure<RabbitmqOptions>(Configuration.GetSection(nameof(RabbitmqOptions)));
             services.Configure<SupplierOptions>(Configuration.GetSection(nameof(SupplierOptions)));
             services.Configure<StoreOptions>(Configuration.GetSection(nameof(StoreOptions)));
+            services.AddScoped(typeof(OrderProducer));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

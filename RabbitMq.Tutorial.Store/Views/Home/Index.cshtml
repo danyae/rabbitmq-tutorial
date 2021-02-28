@@ -1,4 +1,5 @@
-﻿@model RabbitMq.Tutorial.Store.Clients.Models.Product[]
+﻿@using RabbitMq.Tutorial.Store.Controllers.Models
+@model RabbitMq.Tutorial.Store.Controllers.Models.StoreModel
 @{
     ViewData["Title"] = "Home Page";
     var storeName = ViewBag.StoreName;
@@ -6,22 +7,34 @@
 
 <div class="text-center">
     <h1 class="display-4">Welcome to @storeName!</h1>
-
-    <table class="table">
-        <thead>
-        <tr>
-            <th>Id</th>
-            <th>Name</th>
-            <th>Price</th>
-        </tr>
-        </thead>
-        @foreach (var product in Model)
-        {
+    @using (Html.BeginForm("Index"))
+    {
+        @Html.AntiForgeryToken()
+        <table class="table">
+            <thead>
             <tr>
-                <td>@product.Id</td>
-                <td>@product.Name</td>
-                <td>@product.Price.ToString("F2")</td>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Order</th>
             </tr>
-        }
-    </table>
+            </thead>
+            @{ var products = Model.Products.ToArray();}
+            @for (int i = 0; i < products.Length; i++)
+            {
+                <tr>
+                    <td>@products[i].Id</td>
+                    <td>@products[i].Name</td>
+                    <td>@products[i].Price.ToString("F2")</td>
+                    <td>@Model.Stocks.First(x => x.Id == products[i].Id).Quantity</td>
+                    <td>
+                        <input type="hidden" name="@($"{nameof(OrderModel.OrderLines)}[{i}].{nameof(OrderLine.Id)}")" value="@products[i].Id">
+                        <input type="number" name="@($"{nameof(OrderModel.OrderLines)}[{i}].{nameof(OrderLine.Count)}")" min="0" value="0">
+                    </td>
+                </tr>
+            }
+        </table>
+        <input type="submit">
+    }
 </div>

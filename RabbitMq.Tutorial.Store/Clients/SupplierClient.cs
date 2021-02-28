@@ -13,6 +13,11 @@ namespace RabbitMq.Tutorial.Store.Clients
     public class SupplierClient
     {
         private const string BasePath = "api";
+        private static readonly JsonSerializerOptions Options = new()
+        {
+            PropertyNameCaseInsensitive = true,
+        };
+        
         private readonly IHttpClientFactory _clientFactory;
         private readonly SupplierOptions _supplierOptions;
 
@@ -38,12 +43,19 @@ namespace RabbitMq.Tutorial.Store.Clients
 
             await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
             
-            // each time, seriously...
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-            };
-            return await JsonSerializer.DeserializeAsync<IEnumerable<Product>>(responseStream, options, cancellationToken: ct);
+            return await JsonSerializer.DeserializeAsync<IEnumerable<Product>>(responseStream, Options, ct);
+        }
+
+        public async Task<IEnumerable<Stock>> GetStocks(CancellationToken ct = default)
+        {
+            var client = CreateClient();
+
+            var response = await client.GetAsync("stock", ct);
+            response.EnsureSuccessStatusCode();
+            
+            await using var responseStream = await response.Content.ReadAsStreamAsync(ct);
+            
+            return await JsonSerializer.DeserializeAsync<IEnumerable<Stock>>(responseStream, Options, ct);
         }
     }
 }

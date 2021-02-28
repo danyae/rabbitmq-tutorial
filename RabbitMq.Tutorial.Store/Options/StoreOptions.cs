@@ -1,8 +1,10 @@
+using System;
+
 namespace RabbitMq.Tutorial.Store.Options
 {
     public class StoreOptions
     {
-        public string Id { get; set; }
+        public Guid Id { get; set; }
         
         public string Name { get; set; }
         
